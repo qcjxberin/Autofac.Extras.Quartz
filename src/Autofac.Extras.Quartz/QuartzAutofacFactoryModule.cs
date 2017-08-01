@@ -3,7 +3,7 @@
 // Autofac Quartz integration
 // https://github.com/alphacloud/Autofac.Extras.Quartz
 // Licensed under MIT license.
-// Copyright (c) 2014-2016 Alphacloud.Net
+// Copyright (c) 2014-2017 Alphacloud.Net
 
 #endregion
 
@@ -27,7 +27,7 @@ namespace Autofac.Extras.Quartz
         /// </summary>
         public const string LifetimeScopeName = "quartz.job";
 
-        readonly string _lifetimeScopeName;
+        [NotNull] readonly string _lifetimeScopeName;
 
         /// <summary>
         ///     Initializes a new instance of the <see cref="QuartzAutofacFactoryModule" /> class with a default lifetime scope
@@ -76,21 +76,20 @@ namespace Autofac.Extras.Quartz
                 .SingleInstance();
 
             builder.Register<ISchedulerFactory>(c => {
-                    var cfgProvider = ConfigurationProvider;
-
-                    var autofacSchedulerFactory = cfgProvider != null
-                        ? new AutofacSchedulerFactory(cfgProvider(c), c.Resolve<AutofacJobFactory>())
-                        : new AutofacSchedulerFactory(c.Resolve<AutofacJobFactory>());
-                    return autofacSchedulerFactory;
-                })
-                .SingleInstance();
+                var cfgProvider = ConfigurationProvider;
+                var ctx = c.Resolve<IComponentContext>();
+                var autofacSchedulerFactory = cfgProvider != null
+                    ? new AutofacSchedulerFactory(cfgProvider(ctx), ctx.Resolve<AutofacJobFactory>())
+                    : new AutofacSchedulerFactory(c.Resolve<AutofacJobFactory>());
+                return autofacSchedulerFactory;
+            }).SingleInstance();
 
             builder.Register(c => {
-                    var getScheduler = c.Resolve<ISchedulerFactory>().GetScheduler();
-                    getScheduler.Wait();
-                    return getScheduler.Result;
-                })
-                .SingleInstance();
+                var ctx = c.Resolve<IComponentContext>();
+                var getScheduler = ctx.Resolve<ISchedulerFactory>().GetScheduler();
+                getScheduler.Wait();
+                return getScheduler.Result;
+            }).SingleInstance();
         }
     }
 }
